@@ -1,0 +1,52 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-job-recommendation-agent"
+version = "0.1.0"
+description = "A modular job recommendation agent for internships and early-career roles in Germany."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+dependencies = [
+  "pandas>=2.2,<3.0",
+  "pydantic>=2.8,<3.0",
+  "pydantic-settings>=2.4,<3.0",
+  "requests>=2.32,<3.0",
+  "streamlit>=1.36,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.11,<2.0",
+  "pandas-stubs>=2.2,<3.0",
+  "pytest>=8.2,<9.0",
+  "pytest-cov>=5.0,<6.0",
+  "ruff>=0.5,<1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/job_recommendation_agent"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=job_recommendation_agent --cov-report=term-missing"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src", "tests"]
+plugins = ["pydantic.mypy"]
