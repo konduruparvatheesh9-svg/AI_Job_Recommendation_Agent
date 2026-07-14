@@ -44,6 +44,8 @@ class SQLiteJobRepository:
                     job_id TEXT PRIMARY KEY REFERENCES jobs(id) ON DELETE CASCADE,
                     rating INTEGER CHECK (rating BETWEEN 1 AND 5),
                     feedback TEXT NOT NULL,
+                    applied INTEGER NOT NULL DEFAULT 0,
+                    dislike_reason TEXT NOT NULL DEFAULT '',
                     notes TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
@@ -54,6 +56,17 @@ class SQLiteJobRepository:
             }
             if "posted_at" not in columns:
                 connection.execute("ALTER TABLE jobs ADD COLUMN posted_at TEXT")
+            review_columns = {
+                row["name"] for row in connection.execute("PRAGMA table_info(reviews)").fetchall()
+            }
+            if "applied" not in review_columns:
+                connection.execute(
+                    "ALTER TABLE reviews ADD COLUMN applied INTEGER NOT NULL DEFAULT 0"
+                )
+            if "dislike_reason" not in review_columns:
+                connection.execute(
+                    "ALTER TABLE reviews ADD COLUMN dislike_reason TEXT NOT NULL DEFAULT ''"
+                )
 
     def upsert_jobs(self, jobs: Iterable[Job]) -> None:
         with self._connect() as connection:
@@ -92,24 +105,44 @@ class SQLiteJobRepository:
                 job_id=row["job_id"],
                 rating=row["rating"],
                 feedback=Feedback(row["feedback"]),
+                applied=bool(row["applied"]),
+                dislike_reason=row["dislike_reason"],
                 notes=row["notes"],
                 updated_at=datetime.fromisoformat(row["updated_at"]),
             )
             for row in rows
         }
 
-    def save_review(self, job_id: str, rating: int | None, feedback: Feedback, notes: str) -> None:
+    def save_review(
+        self,
+        job_id: str,
+        feedback: Feedback,
+        applied: bool,
+        dislike_reason: str,
+        notes: str,
+        rating: int | None = None,
+    ) -> None:
         updated_at = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO reviews (job_id, rating, feedback, notes, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO reviews (
+                    job_id, rating, feedback, applied, dislike_reason, notes, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(job_id) DO UPDATE SET
                     rating=excluded.rating, feedback=excluded.feedback,
+                    applied=excluded.applied, dislike_reason=excluded.dislike_reason,
                     notes=excluded.notes, updated_at=excluded.updated_at
                 """,
-                (job_id, rating, feedback.value, notes.strip(), updated_at),
+                (
+                    job_id,
+                    rating,
+                    feedback.value,
+                    int(applied),
+                    dislike_reason.strip(),
+                    notes.strip(),
+                    updated_at,
+                ),
             )
 
     def _connect(self) -> sqlite3.Connection:

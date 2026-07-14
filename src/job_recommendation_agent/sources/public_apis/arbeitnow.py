@@ -22,6 +22,9 @@ EARLY_CAREER_TERMS = {
     "junior",
     "berufseinsteiger",
     "ausbildung",
+    "thesis",
+    "masterarbeit",
+    "abschlussarbeit",
 }
 
 
@@ -83,6 +86,8 @@ class ArbeitnowSource:
 
 
 def _employment_type(searchable: str) -> EmploymentType:
+    if any(term in searchable for term in ("thesis", "masterarbeit", "abschlussarbeit")):
+        return EmploymentType.THESIS
     if "werkstudent" in searchable or "working student" in searchable:
         return EmploymentType.WORKING_STUDENT
     if any(term in searchable for term in ("intern", "praktikum", "praktikant")):

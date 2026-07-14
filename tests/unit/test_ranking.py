@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from job_recommendation_agent.matching.ranking import (
     fresh_internships,
     match_reasons,
+    matches_target_position,
     relevance_score,
     top_jobs_on_timeline,
 )
@@ -38,3 +39,15 @@ def test_internship_window_expands_until_results_can_fill_limit() -> None:
 
     assert selected == [internship]
     assert hours == 48
+
+
+def test_only_supplied_position_families_are_selected() -> None:
+    jobs = demo_jobs()
+
+    assert (
+        matches_target_position(jobs[0].model_copy(update={"title": "Marketing Intern"})) is False
+    )
+    assert (
+        matches_target_position(jobs[0].model_copy(update={"title": "Data Analytics Intern"}))
+        is True
+    )

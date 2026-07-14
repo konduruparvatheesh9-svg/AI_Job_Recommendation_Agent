@@ -10,6 +10,7 @@ class EmploymentType(StrEnum):
     """Supported early-career employment categories."""
 
     INTERNSHIP = "Internship / Praktikum"
+    THESIS = "Thesis / Abschlussarbeit"
     WORKING_STUDENT = "Werkstudent"
     GRADUATE = "Graduate"
     ENTRY_LEVEL = "Entry level"
@@ -47,5 +48,7 @@ class JobReview(BaseModel):
     job_id: str
     rating: int | None = Field(default=None, ge=1, le=5)
     feedback: Feedback = Feedback.NONE
+    applied: bool = False
+    dislike_reason: str = ""
     notes: str = ""
     updated_at: datetime

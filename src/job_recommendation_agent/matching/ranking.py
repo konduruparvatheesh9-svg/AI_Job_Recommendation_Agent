@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 
-from job_recommendation_agent.domain.models import EmploymentType, Job
+from job_recommendation_agent.domain.models import EmploymentType, Feedback, Job, JobReview
 
 TARGET_TERMS = {
     # Quality, manufacturing, and scientific instrumentation
@@ -43,6 +43,99 @@ TARGET_TERMS = {
     "sccm": 6,
 }
 
+TARGET_POSITION_TERMS = (
+    "data analyst",
+    "data analytics",
+    "data science",
+    "business intelligence",
+    "business analyst",
+    "product analyst",
+    "product analytics",
+    "analytics engineer",
+    "ai intern",
+    "artificial intelligence",
+    "machine learning",
+    "industry 4.0",
+    "smart manufacturing",
+    "digital factory",
+    "production analytics",
+    "industrial ai",
+    "manufacturing data",
+    "automation analytics",
+    "quality analytics",
+    "quality management",
+    "process optimization",
+    "process optimisation",
+    "process improvement",
+    "product management",
+    "product strategy",
+    "market intelligence",
+    "digital transformation",
+    "datenanalyse",
+    "data & ai",
+    "prototyping & data",
+)
+
+PREFERRED_COMPANY_TIERS = {
+    1: {
+        "bosch",
+        "volkswagen",
+        "cariad",
+        "munich re",
+        "siemens",
+        "infineon",
+        "zf",
+        "schaeffler",
+        "continental",
+        "henkel",
+    },
+    2: {
+        "teamviewer",
+        "personio",
+        "celonis",
+        "datev",
+        "sap",
+        "puma",
+        "mercedes-benz",
+        "bmw",
+        "audi",
+        "porsche",
+    },
+    3: {
+        "zalando",
+        "hellofresh",
+        "delivery hero",
+        "n26",
+        "trade republic",
+        "flix",
+        "getyourguide",
+        "contentful",
+        "sumup",
+        "mytheresa",
+    },
+}
+
+
+def matches_target_position(job: Job) -> bool:
+    """Require a supplied target role phrase or a precise equivalent in the title."""
+
+    title = job.title.casefold()
+    exact_match = any(term in title for term in TARGET_POSITION_TERMS)
+    semantic_variant = (
+        "data" in title or " ai " in f" {title} " or "artificial intelligence" in title
+    )
+    return exact_match or semantic_variant
+
+
+def company_preference_bonus(company: str) -> int:
+    """Reward companies from the supplied three-tier preference list."""
+
+    normalized = company.casefold()
+    for tier, names in PREFERRED_COMPANY_TIERS.items():
+        if any(name in normalized for name in names):
+            return {1: 15, 2: 10, 3: 5}[tier]
+    return 0
+
 
 def relevance_score(job: Job) -> int:
     """Score a job against skills and goals evidenced by the resume."""
@@ -55,7 +148,39 @@ def relevance_score(job: Job) -> int:
         score += 3
     if job.is_remote:
         score += 1
-    return score
+    return score + company_preference_bonus(job.company)
+
+
+def feedback_score(job: Job, jobs: list[Job], reviews: dict[str, JobReview]) -> int:
+    """Adjust relevance using terms found in previously liked and disliked jobs."""
+
+    candidate_terms = {value.casefold() for value in [job.title, *job.skills]}
+    adjustment = 0
+    jobs_by_id = {candidate.id: candidate for candidate in jobs}
+    for job_id, review in reviews.items():
+        reviewed_job = jobs_by_id.get(job_id)
+        if reviewed_job is None or review.feedback is Feedback.NONE:
+            continue
+        reviewed_terms = {value.casefold() for value in [reviewed_job.title, *reviewed_job.skills]}
+        overlap = len(candidate_terms & reviewed_terms)
+        if review.feedback is Feedback.LIKE:
+            adjustment += overlap * 3
+        elif review.feedback is Feedback.DISLIKE:
+            adjustment -= overlap * 3
+    return relevance_score(job) + adjustment
+
+
+def order_with_feedback(jobs: list[Job], reviews: dict[str, JobReview]) -> list[Job]:
+    """Order jobs by learned preference while keeping newer jobs ahead on ties."""
+
+    return sorted(
+        jobs,
+        key=lambda job: (
+            feedback_score(job, jobs, reviews),
+            job.posted_at or datetime.min.replace(tzinfo=UTC),
+        ),
+        reverse=True,
+    )
 
 
 def match_reasons(job: Job, limit: int = 5) -> list[str]:
@@ -99,7 +224,8 @@ def fresh_internships(
     internships = [
         job
         for job in jobs
-        if job.employment_type is EmploymentType.INTERNSHIP and job.posted_at is not None
+        if job.employment_type in {EmploymentType.INTERNSHIP, EmploymentType.THESIS}
+        and job.posted_at is not None
     ]
     for hours in windows:
         cutoff = current_time - timedelta(hours=hours)
