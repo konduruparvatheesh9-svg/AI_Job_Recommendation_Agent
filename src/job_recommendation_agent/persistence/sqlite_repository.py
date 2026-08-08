@@ -49,6 +49,10 @@ class SQLiteJobRepository:
                     notes TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
                 """
             )
             columns = {
@@ -143,6 +147,25 @@ class SQLiteJobRepository:
                     notes.strip(),
                     updated_at,
                 ),
+            )
+
+    def get_metadata(self, key: str) -> str | None:
+        """Read a small application metadata value."""
+
+        with self._connect() as connection:
+            row = connection.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
+        return str(row["value"]) if row else None
+
+    def set_metadata(self, key: str, value: str) -> None:
+        """Persist a small application metadata value."""
+
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO metadata (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value
+                """,
+                (key, value),
             )
 
     def _connect(self) -> sqlite3.Connection:

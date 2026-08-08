@@ -22,3 +22,8 @@ class Settings(BaseSettings):
     request_timeout_seconds: float = Field(default=15.0, gt=0, le=60)
     arbeitnow_api_url: str = "https://www.arbeitnow.com/api/job-board-api"
     arbeitnow_pages: int = Field(default=5, ge=1, le=10)
+    bosch_api_url: str = "https://api.smartrecruiters.com/v1/companies/BoschGroup/postings"
+    continental_api_url: str = (
+        "https://api.smartrecruiters.com/v1/companies/Continental/postings"
+    )
+    amazon_jobs_api_url: str = "https://www.amazon.jobs/en/search.json"

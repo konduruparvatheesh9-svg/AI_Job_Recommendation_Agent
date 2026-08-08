@@ -28,3 +28,13 @@ def test_repository_persists_jobs_and_reviews(tmp_path: Path) -> None:
     assert review.feedback is Feedback.LIKE
     assert review.applied is True
     assert review.notes == "Strong fit"
+
+
+def test_repository_persists_metadata(tmp_path: Path) -> None:
+    repository = SQLiteJobRepository(tmp_path / "metadata.db")
+    repository.initialize()
+
+    assert repository.get_metadata("last_sync") is None
+    repository.set_metadata("last_sync", "2026-07-14T12:00:00+00:00")
+
+    assert repository.get_metadata("last_sync") == "2026-07-14T12:00:00+00:00"

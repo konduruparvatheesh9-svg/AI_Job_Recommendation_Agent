@@ -22,6 +22,7 @@ class Feedback(StrEnum):
     NONE = "Not reviewed"
     LIKE = "Like"
     DISLIKE = "Dislike"
+    REJECTED = "Rejected / not proceeding"
 
 
 class Job(BaseModel):

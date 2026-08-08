@@ -76,7 +76,7 @@ class ArbeitnowSource:
             employment_type=employment_type,
             description=description[:1500],
             skills=[str(tag) for tag in item.get("tags", [])],
-            source_name="Arbeitnow public API",
+            source_name="Arbeitnow Portal Network",
             source_url=str(item["url"]),
             posted_date=posted_at.date() if posted_at else None,
             posted_at=posted_at,

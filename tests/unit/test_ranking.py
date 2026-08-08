@@ -3,10 +3,13 @@
 from datetime import UTC, datetime, timedelta
 
 from job_recommendation_agent.matching.ranking import (
+    TARGET_ROLES,
+    diverse_role_queue,
     fresh_internships,
     match_reasons,
     matches_target_position,
     relevance_score,
+    target_role,
     top_jobs_on_timeline,
 )
 from job_recommendation_agent.services.demo_data import demo_jobs
@@ -51,3 +54,48 @@ def test_only_supplied_position_families_are_selected() -> None:
         matches_target_position(jobs[0].model_copy(update={"title": "Data Analytics Intern"}))
         is True
     )
+
+
+def test_all_requested_role_names_are_classified() -> None:
+    job = demo_jobs()[0]
+
+    for role in TARGET_ROLES:
+        candidate = job.model_copy(update={"id": role.name, "title": role.name})
+        assert target_role(candidate) == role
+
+
+def test_queue_prefers_different_target_role_families() -> None:
+    template = demo_jobs()[0]
+    jobs = [
+        template.model_copy(update={"id": "data-1", "title": "Data Analytics Intern"}),
+        template.model_copy(update={"id": "data-2", "title": "Data Analyst Internship"}),
+        template.model_copy(
+            update={"id": "bi-1", "title": "Business Intelligence Intern"}
+        ),
+    ]
+
+    selected = diverse_role_queue(jobs, {}, limit=2)
+
+    selected_roles = [target_role(job) for job in selected]
+    assert {role.name for role in selected_roles if role is not None} == {
+        "Data Analytics Intern",
+        "Business Intelligence Intern",
+    }
+
+
+def test_queue_enforces_company_cap() -> None:
+    template = demo_jobs()[0]
+    jobs = [
+        template.model_copy(
+            update={
+                "id": str(index),
+                "title": f"Data Analyst Intern {index}",
+                "location": f"City {index}, Germany",
+            }
+        )
+        for index in range(6)
+    ]
+
+    selected = diverse_role_queue(jobs, {}, limit=10, max_per_company=3)
+
+    assert len(selected) == 3

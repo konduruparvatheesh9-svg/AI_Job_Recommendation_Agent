@@ -13,6 +13,12 @@ class CareerPortal(NamedTuple):
 
 
 PRIORITY_CAREER_PORTALS = (
+    CareerPortal(
+        "ZEISS",
+        "https://www.zeiss.com/career/en/locations/germany.html",
+        1,
+        "Data, software, IT, quality and manufacturing analytics",
+    ),
     CareerPortal("Bosch", "https://jobs.bosch.com/", 1, "Data, BI, AI, digital transformation"),
     CareerPortal(
         "Volkswagen Group",
@@ -80,4 +86,21 @@ PRIORITY_CAREER_PORTALS = (
     CareerPortal("Contentful", "https://www.contentful.com/careers/", 3, "Product data"),
     CareerPortal("SumUp", "https://careers.sumup.com/", 3, "Data analysis"),
     CareerPortal("Mytheresa", "https://career.mytheresa.com/", 3, "Business analytics"),
+    CareerPortal(
+        "Microsoft",
+        "https://jobs.careers.microsoft.com/global/en/search",
+        2,
+        "Software, data and cloud support",
+    ),
+    CareerPortal("IBM", "https://www.ibm.com/careers/search", 2, "Data science, AI and software"),
+    CareerPortal("Amazon", "https://www.amazon.jobs/en/search", 2, "BI, data, software and cloud"),
+    CareerPortal(
+        "Accenture",
+        "https://www.accenture.com/de-en/careers",
+        2,
+        "Analytics, BI and software consulting",
+    ),
+    CareerPortal(
+        "Capgemini", "https://www.capgemini.com/de-de/karriere/", 2, "Data, SQL, BI and software"
+    ),
 )
